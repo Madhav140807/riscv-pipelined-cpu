@@ -14,6 +14,21 @@
 `define ALU_AND  4'b0111
 
 `endif
+// ALU input A select
+`define A_RS1  2'b00
+`define A_PC   2'b01
+`define A_ZERO 2'b10
+
+// ALU input B select
+`define B_RS2  1'b0
+`define B_IMM  1'b1
+
+// Writeback select
+`define RES_ALU 2'b00
+`define RES_MEM 2'b01
+`define RES_PC4 2'b10
+
+
 
 // Opcodes (instr[6:0])
 `define OP_LUI    7'b0110111
