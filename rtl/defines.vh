@@ -13,6 +13,14 @@
 `define ALU_OR   4'b0110
 `define ALU_AND  4'b0111
 
+// Branch types (funct3)
+`define F3_BEQ  3'b000
+`define F3_BNE  3'b001
+`define F3_BLT  3'b100
+`define F3_BGE  3'b101
+`define F3_BLTU 3'b110
+`define F3_BGEU 3'b111
+
 `endif
 // ALU input A select
 `define A_RS1  2'b00

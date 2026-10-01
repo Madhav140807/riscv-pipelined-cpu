@@ -2,7 +2,7 @@ IVERILOG = iverilog -I rtl
 VVP      = vvp
 SIM      = sim
 
-TESTS = alu regfile imm_gen control
+TESTS = alu regfile imm_gen control branch_unit
 
 .PHONY: test clean $(TESTS)
 
