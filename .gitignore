@@ -1,0 +1,5 @@
+sim/
+*.vcd
+*.out
+obj_dir/
+.DS_Store
