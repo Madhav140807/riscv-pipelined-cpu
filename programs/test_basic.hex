@@ -1,0 +1,12 @@
+00500093  // 0:  addi x1, x0, 5     counter = 5
+00000113  // 4:  addi x2, x0, 0     sum = 0
+00110133  // 8:  add  x2, x2, x1    sum += counter
+FFF08093  // 12: addi x1, x1, -1    counter--
+FE009CE3  // 16: bne  x1, x0, -8    loop back to 8 until counter is 0
+00202023  // 20: sw   x2, 0(x0)     mem[0] = sum
+00002183  // 24: lw   x3, 0(x0)     x3 = mem[0]
+12345237  // 28: lui  x4, 0x12345   x4 = 0x12345000
+008002EF  // 32: jal  x5, 8         x5 = 36, jump to 40
+06300313  // 36: addi x6, x0, 99    should be skipped
+00100393  // 40: addi x7, x0, 1     x7 = 1
+0000006F  // 44: jal  x0, 0         loop forever (halt)

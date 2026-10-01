@@ -2,7 +2,7 @@ IVERILOG = iverilog -I rtl
 VVP      = vvp
 SIM      = sim
 
-TESTS = alu regfile imm_gen control branch_unit instr_mem data_mem
+TESTS = alu regfile imm_gen control branch_unit instr_mem data_mem cpu
 
 .PHONY: test clean $(TESTS)
 
@@ -14,7 +14,7 @@ $(SIM):
 
 $(TESTS): %: | $(SIM)
 	@echo "--- Testing $@ ---"
-	$(IVERILOG) -o $(SIM)/$@_tb.out rtl/$@.v tb/$@_tb.v
+	$(IVERILOG) -s $@_tb -o $(SIM)/$@_tb.out rtl/*.v tb/$@_tb.v
 	$(VVP) $(SIM)/$@_tb.out | tee $(SIM)/$@.log
 	grep -q "ALL TESTS PASSED" $(SIM)/$@.log
 
