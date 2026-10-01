@@ -8,6 +8,11 @@ module cpu_tb;
   cpu #(.IMEM_FILE("programs/test_basic.hex")) dut (.clk(clk), .reset(reset));
 
   always #5 clk = ~clk;
+  
+    initial begin
+    $dumpfile("sim/cpu.vcd");
+    $dumpvars(0, cpu_tb);
+  end
 
   task check_reg(input [4:0] r, input [31:0] expected);
     begin
