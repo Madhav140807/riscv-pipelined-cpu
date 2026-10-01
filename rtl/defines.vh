@@ -21,6 +21,18 @@
 `define F3_BLTU 3'b110
 `define F3_BGEU 3'b111
 
+// Load types (funct3)
+`define F3_LB  3'b000
+`define F3_LH  3'b001
+`define F3_LW  3'b010
+`define F3_LBU 3'b100
+`define F3_LHU 3'b101
+
+// Store types (funct3)
+`define F3_SB  3'b000
+`define F3_SH  3'b001
+`define F3_SW  3'b010
+
 `endif
 // ALU input A select
 `define A_RS1  2'b00
