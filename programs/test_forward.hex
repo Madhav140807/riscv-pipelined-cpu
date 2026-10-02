@@ -1,0 +1,13 @@
+00500093  // 0:  addi x1, x0, 5      x1 = 5
+00308113  // 4:  addi x2, x1, 3      x2 = 8    x1 forwarded from MEM
+002081B3  // 8:  add  x3, x1, x2     x3 = 13   x1 from WB, x2 from MEM
+40118233  // 12: sub  x4, x3, x1     x4 = 8    x3 from MEM
+00402023  // 16: sw   x4, 0(x0)      mem[0] = 8, store data forwarded
+000012B7  // 20: lui  x5, 0x1        x5 = 0x1000
+00428293  // 24: addi x5, x5, 4      x5 = 0x1004
+00528333  // 28: add  x6, x5, x5     x6 = 0x2008, both inputs forwarded
+00100393  // 32: addi x7, x0, 1      x7 = 1
+00200393  // 36: addi x7, x0, 2      x7 = 2
+00038433  // 40: add  x8, x7, x0     x8 = 2    newest x7 must win
+00002483  // 44: lw   x9, 0(x0)      x9 = 8
+0000006F  // 48: jal  x0, 0          halt

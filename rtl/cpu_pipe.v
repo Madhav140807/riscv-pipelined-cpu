@@ -131,8 +131,33 @@ module cpu_pipe #(
   // EX: ALU, branch decision
 
   // forwarding will plug in here later
-  wire [31:0] ex_rs1_val = id_ex_rs1_val;
-  wire [31:0] ex_rs2_val = id_ex_rs2_val;
+   // forwarding: grab fresh values from MEM or WB instead of stale ones
+  wire [1:0] fwd_a, fwd_b;
+
+  forward_unit fu (
+    .id_ex_rs1(id_ex_rs1), .id_ex_rs2(id_ex_rs2),
+    .ex_mem_rd(ex_mem_rd), .ex_mem_reg_write(ex_mem_reg_write),
+    .mem_wb_rd(mem_wb_rd), .mem_wb_reg_write(mem_wb_reg_write),
+    .fwd_a(fwd_a), .fwd_b(fwd_b)
+  );
+
+  // jal and jalr write PC+4, not the ALU result
+  wire [31:0] ex_mem_fwd_val = (ex_mem_result_src == `RES_PC4) ? ex_mem_pc_plus4
+                                                               : ex_mem_alu_result;
+
+  reg [31:0] ex_rs1_val, ex_rs2_val;
+  always @(*) begin
+    case (fwd_a)
+      `FWD_MEM: ex_rs1_val = ex_mem_fwd_val;
+      `FWD_WB:  ex_rs1_val = wb_data;
+      default:  ex_rs1_val = id_ex_rs1_val;
+    endcase
+    case (fwd_b)
+      `FWD_MEM: ex_rs2_val = ex_mem_fwd_val;
+      `FWD_WB:  ex_rs2_val = wb_data;
+      default:  ex_rs2_val = id_ex_rs2_val;
+    endcase
+  end
 
   reg [31:0] ex_alu_a;
   always @(*) begin

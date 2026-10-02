@@ -2,7 +2,7 @@ IVERILOG = iverilog -I rtl
 VVP      = vvp
 SIM      = sim
 
-TESTS = alu regfile imm_gen control branch_unit instr_mem data_mem cpu cpu_pipe forward_unit
+TESTS = alu regfile imm_gen control branch_unit instr_mem data_mem cpu cpu_pipe forward_unit pipe_forward
 
 .PHONY: test clean $(TESTS)
 
