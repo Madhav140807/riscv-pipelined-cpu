@@ -3,13 +3,19 @@
 module cpu_pipe #(
   parameter IMEM_FILE = ""
 ) (
-  input wire clk,
-  input wire reset
+  input  wire        clk,
+  input  wire        reset,
+  output reg         halted,
+  output reg  [31:0] cycle_count,
+  output reg  [31:0] instret_count,
+  output reg  [31:0] stall_count,
+  output reg  [31:0] flush_count
 );
 
   // Pipeline registers
 
   reg [31:0] if_id_pc, if_id_instr;
+  reg        if_id_valid, id_ex_valid, ex_mem_valid, mem_wb_valid;
 
   reg [31:0] id_ex_pc, id_ex_rs1_val, id_ex_rs2_val, id_ex_imm;
   reg  [4:0] id_ex_rs1, id_ex_rs2, id_ex_rd;
@@ -51,13 +57,15 @@ module cpu_pipe #(
     if (reset || ex_redirect) begin
       if_id_pc    <= 32'd0;
       if_id_instr <= `NOP;
+      if_id_valid <= 1'b0;
     end else if (!stall) begin
       if_id_pc    <= pc;
       if_id_instr <= if_instr;
+      if_id_valid <= 1'b1;
     end
   end
 
-  // ID: decode and read registers
+
 
   wire [4:0] id_rs1    = if_id_instr[19:15];
   wire [4:0] id_rs2    = if_id_instr[24:20];
@@ -87,7 +95,7 @@ module cpu_pipe #(
   wire [31:0] id_rs1_val, id_rs2_val;
   reg  [31:0] wb_data;
 
-  // write through on: WB writes and ID reads in the same cycle
+
   regfile #(.WRITE_THROUGH(1)) rf (
     .clk(clk), .we(mem_wb_reg_write), .rs1(id_rs1), .rs2(id_rs2),
     .rd(mem_wb_rd), .wd(wb_data), .rd1(id_rs1_val), .rd2(id_rs2_val)
@@ -96,6 +104,7 @@ module cpu_pipe #(
   // bubble on reset, on a load use stall, or when flushing a wrong path instruction
   always @(posedge clk) begin
     if (reset || stall || ex_redirect) begin
+      id_ex_valid      <= 1'b0;
       id_ex_reg_write  <= 1'b0;
       id_ex_mem_read   <= 1'b0;
       id_ex_mem_write  <= 1'b0;
@@ -115,6 +124,7 @@ module cpu_pipe #(
       id_ex_rd         <= 5'd0;
       id_ex_funct3     <= 3'd0;
     end else begin
+      id_ex_valid      <= if_id_valid;
       id_ex_reg_write  <= id_reg_write;
       id_ex_mem_read   <= id_mem_read;
       id_ex_mem_write  <= id_mem_write;
@@ -129,14 +139,14 @@ module cpu_pipe #(
       id_ex_rs1_val    <= id_rs1_val;
       id_ex_rs2_val    <= id_rs2_val;
       id_ex_imm        <= id_imm;
-            id_ex_rs1        <= id_rs1;
+      id_ex_rs1        <= id_rs1;
       id_ex_rs2        <= id_rs2;
       id_ex_rd         <= id_rd;
       id_ex_funct3     <= id_funct3;
     end
   end
 
-  // EX: forwarding, ALU, branch decision
+
 
   wire [1:0] fwd_a, fwd_b;
 
@@ -189,6 +199,7 @@ module cpu_pipe #(
 
   always @(posedge clk) begin
     if (reset) begin
+      ex_mem_valid      <= 1'b0;
       ex_mem_reg_write  <= 1'b0;
       ex_mem_mem_write  <= 1'b0;
       ex_mem_result_src <= `RES_ALU;
@@ -198,6 +209,7 @@ module cpu_pipe #(
       ex_mem_rd         <= 5'd0;
       ex_mem_funct3     <= 3'd0;
     end else begin
+      ex_mem_valid      <= id_ex_valid;
       ex_mem_reg_write  <= id_ex_reg_write;
       ex_mem_mem_write  <= id_ex_mem_write;
       ex_mem_result_src <= id_ex_result_src;
@@ -211,12 +223,15 @@ module cpu_pipe #(
 
   // MEM: data memory
 
+  wire mem_is_halt = ex_mem_mem_write && (ex_mem_alu_result == `HALT_ADDR);
+
   wire [31:0] mem_rd;
-  data_mem dmem (.clk(clk), .mem_write(ex_mem_mem_write), .funct3(ex_mem_funct3),
+  data_mem dmem (.clk(clk), .mem_write(ex_mem_mem_write && !mem_is_halt), .funct3(ex_mem_funct3),
                  .addr(ex_mem_alu_result), .wd(ex_mem_rs2_val), .rd(mem_rd));
 
   always @(posedge clk) begin
     if (reset) begin
+      mem_wb_valid      <= 1'b0;
       mem_wb_reg_write  <= 1'b0;
       mem_wb_result_src <= `RES_ALU;
       mem_wb_alu_result <= 32'd0;
@@ -224,6 +239,7 @@ module cpu_pipe #(
       mem_wb_pc_plus4   <= 32'd0;
       mem_wb_rd         <= 5'd0;
     end else begin
+      mem_wb_valid      <= ex_mem_valid;
       mem_wb_reg_write  <= ex_mem_reg_write;
       mem_wb_result_src <= ex_mem_result_src;
       mem_wb_alu_result <= ex_mem_alu_result;
@@ -233,7 +249,7 @@ module cpu_pipe #(
     end
   end
 
-  // WB: pick what gets written back
+
 
   always @(*) begin
     case (mem_wb_result_src)
@@ -241,6 +257,24 @@ module cpu_pipe #(
       `RES_PC4: wb_data = mem_wb_pc_plus4;
       default:  wb_data = mem_wb_alu_result;
     endcase
+  end
+
+  // Performance counters
+
+  always @(posedge clk) begin
+    if (reset) begin
+      halted        <= 1'b0;
+      cycle_count   <= 32'd0;
+      instret_count <= 32'd0;
+      stall_count   <= 32'd0;
+      flush_count   <= 32'd0;
+    end else if (!halted) begin
+      cycle_count <= cycle_count + 32'd1;
+      if (mem_wb_valid) instret_count <= instret_count + 32'd1;
+      if (stall)        stall_count   <= stall_count + 32'd1;
+      if (ex_redirect)  flush_count   <= flush_count + 32'd1;
+      if (mem_is_halt)  halted        <= 1'b1;
+    end
   end
 
 endmodule

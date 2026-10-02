@@ -41,6 +41,8 @@
 `define FWD_WB   2'b01
 `define FWD_MEM  2'b10
 
+`define HALT_ADDR 32'hFFFFFFF0
+
 `endif
 // ALU input A select
 `define A_RS1  2'b00

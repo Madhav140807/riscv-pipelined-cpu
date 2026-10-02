@@ -1,0 +1,18 @@
+00000093  // 0:  addi x1, x0, 0      address
+00100113  // 4:  addi x2, x0, 1      value
+00B00193  // 8:  addi x3, x0, 11     stop value
+0020A023  // 12: sw   x2, 0(x1)      fill loop
+00408093  // 16: addi x1, x1, 4
+00110113  // 20: addi x2, x2, 1
+FE311AE3  // 24: bne  x2, x3, -12    back to 12
+00000093  // 28: addi x1, x0, 0
+00000213  // 32: addi x4, x0, 0      sum = 0
+02800293  // 36: addi x5, x0, 40     end address
+0000A303  // 40: lw   x6, 0(x1)      sum loop
+00620233  // 44: add  x4, x4, x6     load use stall
+00408093  // 48: addi x1, x1, 4
+FE509AE3  // 52: bne  x1, x5, -12    back to 40
+04402023  // 56: sw   x4, 64(x0)     save result: mem[16] = 55
+FE002823  // 60: sw   x0, -16(x0)    HALT
+00000013  // 64: nop
+0000006F  // 68: jal  x0, 0
