@@ -35,6 +35,7 @@ module cpu_pipe #(
   reg  [31:0] pc;
   wire [31:0] if_instr;
   wire        ex_redirect;   // EX says: jump somewhere else
+    wire        stall;         // hazard unit says: freeze IF and ID
   wire [31:0] ex_target;
 
   instr_mem #(.INIT_FILE(IMEM_FILE)) imem (.addr(pc), .instr(if_instr));
@@ -42,14 +43,14 @@ module cpu_pipe #(
   always @(posedge clk) begin
     if (reset)            pc <= 32'd0;
     else if (ex_redirect) pc <= ex_target;
-    else                  pc <= pc + 32'd4;
+        else if (!stall)      pc <= pc + 32'd4;
   end
 
   always @(posedge clk) begin
     if (reset) begin
       if_id_pc    <= 32'd0;
       if_id_instr <= `NOP;
-    end else begin
+        end else if (!stall) begin
       if_id_pc    <= pc;
       if_id_instr <= if_instr;
     end
@@ -76,6 +77,10 @@ module cpu_pipe #(
 
   wire [31:0] id_imm;
   imm_gen ig (.instr(if_id_instr), .imm(id_imm));
+    hazard_unit hu (
+    .id_ex_mem_read(id_ex_mem_read), .id_ex_rd(id_ex_rd),
+    .id_rs1(id_rs1), .id_rs2(id_rs2), .stall(stall)
+  );
 
   wire [31:0] id_rs1_val, id_rs2_val;
   reg  [31:0] wb_data;
@@ -87,7 +92,7 @@ module cpu_pipe #(
   );
 
   always @(posedge clk) begin
-    if (reset) begin
+       if (reset || stall) begin
       id_ex_reg_write  <= 1'b0;
       id_ex_mem_read   <= 1'b0;
       id_ex_mem_write  <= 1'b0;
