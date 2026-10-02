@@ -35,22 +35,23 @@ module cpu_pipe #(
   reg  [31:0] pc;
   wire [31:0] if_instr;
   wire        ex_redirect;   // EX says: jump somewhere else
-    wire        stall;         // hazard unit says: freeze IF and ID
   wire [31:0] ex_target;
+  wire        stall;         // hazard unit says: freeze IF and ID
 
   instr_mem #(.INIT_FILE(IMEM_FILE)) imem (.addr(pc), .instr(if_instr));
 
   always @(posedge clk) begin
     if (reset)            pc <= 32'd0;
     else if (ex_redirect) pc <= ex_target;
-        else if (!stall)      pc <= pc + 32'd4;
+    else if (!stall)      pc <= pc + 32'd4;
   end
 
+  // on a redirect, the instruction in IF/ID was fetched by mistake: flush it
   always @(posedge clk) begin
-    if (reset) begin
+    if (reset || ex_redirect) begin
       if_id_pc    <= 32'd0;
       if_id_instr <= `NOP;
-        end else if (!stall) begin
+    end else if (!stall) begin
       if_id_pc    <= pc;
       if_id_instr <= if_instr;
     end
@@ -77,7 +78,8 @@ module cpu_pipe #(
 
   wire [31:0] id_imm;
   imm_gen ig (.instr(if_id_instr), .imm(id_imm));
-    hazard_unit hu (
+
+  hazard_unit hu (
     .id_ex_mem_read(id_ex_mem_read), .id_ex_rd(id_ex_rd),
     .id_rs1(id_rs1), .id_rs2(id_rs2), .stall(stall)
   );
@@ -91,8 +93,9 @@ module cpu_pipe #(
     .rd(mem_wb_rd), .wd(wb_data), .rd1(id_rs1_val), .rd2(id_rs2_val)
   );
 
+  // bubble on reset, on a load use stall, or when flushing a wrong path instruction
   always @(posedge clk) begin
-       if (reset || stall) begin
+    if (reset || stall || ex_redirect) begin
       id_ex_reg_write  <= 1'b0;
       id_ex_mem_read   <= 1'b0;
       id_ex_mem_write  <= 1'b0;
@@ -126,17 +129,15 @@ module cpu_pipe #(
       id_ex_rs1_val    <= id_rs1_val;
       id_ex_rs2_val    <= id_rs2_val;
       id_ex_imm        <= id_imm;
-      id_ex_rs1        <= id_rs1;
+            id_ex_rs1        <= id_rs1;
       id_ex_rs2        <= id_rs2;
       id_ex_rd         <= id_rd;
       id_ex_funct3     <= id_funct3;
     end
   end
 
-  // EX: ALU, branch decision
+  // EX: forwarding, ALU, branch decision
 
-  // forwarding will plug in here later
-   // forwarding: grab fresh values from MEM or WB instead of stale ones
   wire [1:0] fwd_a, fwd_b;
 
   forward_unit fu (

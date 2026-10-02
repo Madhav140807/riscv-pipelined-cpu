@@ -1,0 +1,13 @@
+00300093  // 0:  addi  x1, x0, 3
+00300113  // 4:  addi  x2, x0, 3
+00208663  // 8:  beq   x1, x2, +12   taken, go to 20
+00100513  // 12: addi  x10, x0, 1    must be flushed
+00200513  // 16: addi  x10, x0, 2    must be flushed
+00209463  // 20: bne   x1, x2, +8    not taken
+00000597  // 24: auipc x11, 0        x11 = 24
+00C000EF  // 28: jal   x1, +12       call: x1 = 32, go to 40
+00700613  // 32: addi  x12, x0, 7    runs after return
+0000006F  // 36: jal   x0, 0         halt
+00900693  // 40: addi  x13, x0, 9    function body
+00008067  // 44: jalr  x0, 0(x1)     return to 32
+00100713  // 48: addi  x14, x0, 1    must be flushed
