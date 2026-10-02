@@ -33,6 +33,9 @@
 `define F3_SH  3'b001
 `define F3_SW  3'b010
 
+// addi x0, x0, 0
+`define NOP 32'h00000013
+
 `endif
 // ALU input A select
 `define A_RS1  2'b00

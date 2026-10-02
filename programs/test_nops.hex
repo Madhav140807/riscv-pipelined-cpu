@@ -1,0 +1,20 @@
+00500093  // 0:  addi x1, x0, 5
+00000113  // 4:  addi x2, x0, 0
+00000013  // 8:  nop
+00000013  // 12: nop
+00110133  // 16: add  x2, x2, x1     loop
+FFF08093  // 20: addi x1, x1, -1
+00000013  // 24: nop
+00000013  // 28: nop
+FE0098E3  // 32: bne  x1, x0, -16    back to 16
+00000013  // 36: nop  (runs even if branch taken)
+00000013  // 40: nop  (runs even if branch taken)
+00202023  // 44: sw   x2, 0(x0)
+00002183  // 48: lw   x3, 0(x0)
+12345237  // 52: lui  x4, 0x12345
+010002EF  // 56: jal  x5, 16         x5 = 60, jump to 72
+00000013  // 60: nop  (runs anyway)
+00000013  // 64: nop  (runs anyway)
+06300313  // 68: addi x6, x0, 99     should be skipped
+00100393  // 72: addi x7, x0, 1
+0000006F  // 76: jal  x0, 0          halt
