@@ -33,7 +33,6 @@ flowchart LR
 ### Hazard handling
 
 | Hazard | Example | Solution | Cost |
-|---|---|---|---|
 | Data | `add x1, ...` then `sub x4, x1, ...` | Forward the result from EX/MEM or MEM/WB | 0 cycles |
 | Load use | `lw x2, 0(x0)` then `add x3, x2, x2` | Stall one cycle, then forward from WB | 1 cycle |
 | Control | taken `beq`, `jal`, `jalr` | Predict not taken, flush 2 wrong path instructions | 2 cycles |
@@ -42,10 +41,8 @@ flowchart LR
 
 All RV32I computational, memory, and control instructions:
 `lui auipc jal jalr beq bne blt bge bltu bgeu lb lh lw lbu lhu sb sh sw addi slti sltiu xori ori andi slli srli srai add sub sll slt sltu xor srl sra or and`
-
-## Project structure
-
-```
+Project structure
+'''
 rtl/        CPU design
   cpu_pipe.v       five stage pipelined CPU (top level)
   cpu.v            single cycle reference CPU
@@ -63,21 +60,16 @@ tb/         self checking testbenches, one per module and program
 programs/   hand assembled test programs (hex)
 ```
 
-## Running the tests
+Running the tests
 
 Requires [Icarus Verilog](https://github.com/steveicarus/iverilog).
 
-```bash
-make test          # run every test suite
-make cpu_pipe      # run one suite
-make clean         # delete simulation output
-```
 
 Every testbench prints `ALL TESTS PASSED` on success, and `make` stops with an error if any suite fails.
 
 To view waveforms, open any `.vcd` file from `sim/` in [Surfer](https://app.surfer-project.org) or GTKWave.
 
-## Verification approach
+ Verification approach
 
 - **Unit tests** for every module, focused on edge cases: signed vs unsigned compares, sign extension, shifting by more than 31, writes to x0, little endian byte access
 - **Real instruction encodings** in every test instead of made up bit patterns
