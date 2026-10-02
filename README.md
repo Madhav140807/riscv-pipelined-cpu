@@ -1,5 +1,7 @@
 # RISC V Pipelined CPU
 
+![tests](https://github.com/Madhav140807/riscv-pipelined-cpu/actions/workflows/test.yml/badge.svg)
+
 A five stage pipelined RV32I processor written from scratch in Verilog, with full hazard handling and a self checking test suite. Everything is simulated, no hardware needed.
 
 Built by Madhav Agarwal, Computer Engineering at UC Irvine.
@@ -64,12 +66,17 @@ Running the tests
 
 Requires [Icarus Verilog](https://github.com/steveicarus/iverilog).
 
+```bash
+make test          # run every test suite
+make cpu_pipe      # run one suite
+make clean         # delete simulation output
+```
 
 Every testbench prints `ALL TESTS PASSED` on success, and `make` stops with an error if any suite fails.
 
 To view waveforms, open any `.vcd` file from `sim/` in [Surfer](https://app.surfer-project.org) or GTKWave.
 
- Verification approach
+## Verification approach
 
 - **Unit tests** for every module, focused on edge cases: signed vs unsigned compares, sign extension, shifting by more than 31, writes to x0, little endian byte access
 - **Real instruction encodings** in every test instead of made up bit patterns
