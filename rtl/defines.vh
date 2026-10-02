@@ -36,6 +36,11 @@
 // addi x0, x0, 0
 `define NOP 32'h00000013
 
+// Forwarding choices
+`define FWD_NONE 2'b00
+`define FWD_WB   2'b01
+`define FWD_MEM  2'b10
+
 `endif
 // ALU input A select
 `define A_RS1  2'b00
