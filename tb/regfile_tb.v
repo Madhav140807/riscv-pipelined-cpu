@@ -49,13 +49,13 @@ module regfile_tb;
     check(rd1, 32'hDEADBEEF, "dual_rd1");
     check(rd2, 32'd42,       "dual_rd2");
 
-    // 4. No write when we = 0
+
     we = 0; rd = 5'd5; wd = 32'd0;
     @(posedge clk); #1;
     rs1 = 5'd5; #1;
     check(rd1, 32'hDEADBEEF, "we_off");
 
-    // 5. Write through: new value visible before the clock edge
+    
     we = 1; rd = 5'd7; wd = 32'h1234; rs1 = 5'd7; #1;
     check(rd1, 32'h1234, "bypass");
     @(posedge clk); #1; we = 0;

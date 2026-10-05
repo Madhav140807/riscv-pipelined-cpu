@@ -1,5 +1,5 @@
 module regfile #(
-  parameter WRITE_THROUGH = 1    // 1 for pipeline, 0 for single cycle
+  parameter WRITE_THROUGH = 1    
 ) (
   input  wire        clk,
   input  wire        we,

@@ -22,7 +22,7 @@ module data_mem #(
   wire [1:0]    off  = addr[1:0];      // which byte inside the word
   wire [31:0]   word = mem[idx];
 
-  // ---------- Store: read modify write ----------
+ 
   reg [31:0] new_word;
   always @(*) begin
     new_word = word;
@@ -36,7 +36,7 @@ module data_mem #(
   always @(posedge clk)
     if (mem_write) mem[idx] <= new_word;
 
-  // ---------- Load: pick bytes and extend ----------
+
   wire [7:0]  byte_val = word[off*8 +: 8];
   wire [15:0] half_val = word[off[1]*16 +: 16];
 

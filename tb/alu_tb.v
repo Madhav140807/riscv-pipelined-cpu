@@ -7,7 +7,7 @@ module alu_tb;
   wire [31:0] result;
   integer errors = 0;
 
-  // The module being tested ("device under test")
+
   alu dut (.a(a), .b(b), .alu_ctrl(alu_ctrl), .result(result));
 
   task check(input [31:0] ta, input [31:0] tb_, input [3:0] op,

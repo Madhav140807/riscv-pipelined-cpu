@@ -12,7 +12,6 @@ module forward_unit (
 );
 
   always @(*) begin
-    // newest value wins, so check EX/MEM first
     if (ex_mem_reg_write && ex_mem_rd != 5'd0 && ex_mem_rd == id_ex_rs1)
       fwd_a = `FWD_MEM;
     else if (mem_wb_reg_write && mem_wb_rd != 5'd0 && mem_wb_rd == id_ex_rs1)

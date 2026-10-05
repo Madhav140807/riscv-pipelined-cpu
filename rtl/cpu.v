@@ -7,14 +7,14 @@ module cpu #(
   input wire reset
 );
 
-  // ================= FETCH =================
+
   reg  [31:0] pc;
   wire [31:0] pc_plus4 = pc + 32'd4;
   wire [31:0] instr;
 
   instr_mem #(.INIT_FILE(IMEM_FILE)) imem (.addr(pc), .instr(instr));
 
-  // ================= DECODE =================
+
   wire [6:0] opcode   = instr[6:0];
   wire [4:0] rd       = instr[11:7];
   wire [2:0] funct3   = instr[14:12];
@@ -45,7 +45,7 @@ module cpu #(
     .rd(rd), .wd(wb_data), .rd1(rs1_val), .rd2(rs2_val)
   );
 
-  // ================= EXECUTE =================
+ 
   reg [31:0] alu_a;
   always @(*) begin
     case (alu_src_a)
@@ -64,12 +64,11 @@ module cpu #(
   branch_unit bu (.branch(branch), .funct3(funct3),
                   .a(rs1_val), .b(rs2_val), .taken(taken));
 
-  // ================= MEMORY =================
   wire [31:0] mem_rd;
   data_mem dmem (.clk(clk), .mem_write(mem_write), .funct3(funct3),
                  .addr(alu_result), .wd(rs2_val), .rd(mem_rd));
 
-  // ================= WRITEBACK =================
+ 
   always @(*) begin
     case (result_src)
       `RES_MEM: wb_data = mem_rd;
@@ -78,7 +77,7 @@ module cpu #(
     endcase
   end
 
-  // ================= NEXT PC =================
+
   wire [31:0] pc_target = pc + imm;   // branches and jal
   wire [31:0] pc_next   = jalr          ? {alu_result[31:1], 1'b0} :
                           (jal | taken) ? pc_target :

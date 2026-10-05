@@ -40,23 +40,23 @@ module data_mem_tb;
     store(`F3_SW, 32'd0, 32'h12345678);
     check("sw_lw",     `F3_LW,  32'd0, 32'h12345678);
 
-    // Little endian: lowest byte at lowest address
+  
     check("lbu_byte0", `F3_LBU, 32'd0, 32'h00000078);
     check("lbu_byte3", `F3_LBU, 32'd3, 32'h00000012);
 
-    // Store one byte, rest of the word unchanged
+   
     store(`F3_SB, 32'd1, 32'h000000AB);
     check("sb_merge",  `F3_LW,  32'd0, 32'h1234AB78);
     check("lb_signed", `F3_LB,  32'd1, 32'hFFFFFFAB);
     check("lbu_zero",  `F3_LBU, 32'd1, 32'h000000AB);
 
-    // Halfword into the upper half of word 1
+  
     store(`F3_SH, 32'd6, 32'h00008001);
     check("sh_merge",  `F3_LW,  32'd4, 32'h80010000);
     check("lh_signed", `F3_LH,  32'd6, 32'hFFFF8001);
     check("lhu_zero",  `F3_LHU, 32'd6, 32'h00008001);
 
-    // No write when mem_write = 0
+ 
     funct3 = `F3_SW; addr = 32'd8; wd = 32'hDEADBEEF;
     @(posedge clk); #1;
     check("no_write",  `F3_LW,  32'd8, 32'h00000000);

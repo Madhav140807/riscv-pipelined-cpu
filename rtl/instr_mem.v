@@ -18,7 +18,7 @@ module instr_mem #(
       $readmemh(INIT_FILE, mem);    // load the program
   end
 
-  // Drop the bottom 2 bits: byte address -> word slot
+
   assign instr = mem[addr[AW+1:2]];
 
 endmodule

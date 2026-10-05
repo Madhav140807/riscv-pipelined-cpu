@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Get the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Install Icarus Verilog
-        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: Install Icarus Verilog and the RISC V compiler
+        run: sudo apt-get update && sudo apt-get install -y iverilog gcc-riscv64-unknown-elf
 
       - name: Run all test suites
-        run: make test
+        run: make test RISCV_PREFIX=riscv64-unknown-elf-

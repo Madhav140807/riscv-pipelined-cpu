@@ -24,7 +24,7 @@ module branch_unit_tb;
   endtask
 
   initial begin
-    //    name           br  funct3     a             b      taken?
+    //    name           br  funct3     a             b      taken
     check("beq_equal",    1, `F3_BEQ,  32'd7,        32'd7,  1);
     check("beq_diff",     1, `F3_BEQ,  32'd7,        32'd8,  0);
     check("bne_diff",     1, `F3_BNE,  32'd7,        32'd8,  1);

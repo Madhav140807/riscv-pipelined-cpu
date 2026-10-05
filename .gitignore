@@ -3,3 +3,4 @@ sim/
 *.out
 obj_dir/
 .DS_Store
+build/

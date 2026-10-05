@@ -23,7 +23,7 @@ module hazard_unit_tb;
   endtask
 
   initial begin
-    //    name          load rd  rs1 rs2  stall?
+    //    name          load rd  rs1 rs2  stall
     check("use_rs1",     1,  2,  2,  5,   1);
     check("use_rs2",     1,  2,  5,  2,   1);
     check("no_match",    1,  2,  3,  4,   0);

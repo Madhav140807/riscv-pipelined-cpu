@@ -17,7 +17,7 @@ module control (
 );
 
   always @(*) begin
-    // Defaults: do nothing
+ 
     reg_write  = 1'b0;
     alu_src_a  = `A_RS1;
     alu_src_b  = `B_RS2;
@@ -84,7 +84,7 @@ module control (
         alu_src_b = `B_IMM;
       end
 
-      default: ; // unknown instruction: keep safe defaults
+      default: ; 
     endcase
   end
 
