@@ -62,6 +62,19 @@ On the `bench_sum` benchmark (fill an array, then sum it with a load and add loo
 
 Every cycle is accounted for: 87 instructions + 10 stalls + 36 flush cycles + 4 to fill the pipeline = 137. Branch flushes alone waste about 26% of all cycles, which is the target for branch prediction.
 
+## Running C programs
+
+C code in `sw/` is compiled with the RISC V GCC cross compiler and run directly on the CPU. A small startup file (`crt0.S`) sets the stack pointer, calls `main`, and halts. A linker script (`link.ld`) places code at address 0.
+
+```bash
+brew install riscv64-elf-gcc   # macOS
+make c_fib                     # compile sw/fib.c and run it on the pipeline
+```
+
+The disassembled output is saved to `build/fib.dump`.
+
+Recursive `fib(10)` runs 2,662 instructions in 3,556 cycles (**CPI 1.336**). There are zero load use stalls because the compiler schedules around them, but 446 flushes from calls, returns, and branches cost about 25% of all cycles.
+
 ## Project structure
 
 ```
@@ -80,7 +93,10 @@ rtl/        CPU design
   defines.vh       shared constants
 tb/         self checking testbenches, one per module and program
 programs/   hand assembled test programs and benchmarks (hex)
+sw/         C programs, startup code, and linker script
+tools/      helper scripts (bin to hex conversion)
 ```
+
 
 ## Running the tests
 
@@ -128,7 +144,7 @@ To view waveforms, open any `.vcd` file from `sim/` in [Surfer](https://app.surf
 - [x] Five stage pipeline with forwarding, stalls, and flushing
 - [x] Continuous integration with GitHub Actions
 - [x] Performance counters (cycles, instructions, CPI)
-- [ ] Compile and run C programs with the RISC V GCC toolchain
+- [x] Compile and run C programs with the RISC V GCC toolchain
 - [ ] Branch prediction
 - [ ] Instruction and data caches
 - [ ] UART output and a tiny kernel
