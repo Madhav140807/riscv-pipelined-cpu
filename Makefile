@@ -7,10 +7,7 @@ BUILD    = build
 RISCV_PREFIX ?= riscv64-elf-
 CFLAGS = -march=rv32i -mabi=ilp32 -O1 -nostdlib -ffreestanding -mno-relax
 
-TESTS = alu regfile imm_gen control branch_unit instr_mem data_mem cpu cpu_pipe forward_unit pipe_forward hazard_unit pipe_loaduse pipe_basic pipe_branch pipe_perf c_fib
-
-.PHONY: test clean $(TESTS)
-
+TESTS = alu regfile imm_gen control branch_unit instr_mem data_mem cpu cpu_pipe forward_unit pipe_forward hazard_unit pipe_loaduse pipe_basic pipe_branch pipe_perf c_fib branch_predictor pipe_bp
 test: $(TESTS)
 	@echo "=== All test suites passed ==="
 

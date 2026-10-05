@@ -1,7 +1,8 @@
 `include "defines.vh"
 
 module cpu_pipe #(
-  parameter IMEM_FILE = ""
+  parameter IMEM_FILE = "",
+  parameter USE_BP    = 1        // 1 = branch prediction on, 0 = always predict not taken
 ) (
   input  wire        clk,
   input  wire        reset,
@@ -9,13 +10,16 @@ module cpu_pipe #(
   output reg  [31:0] cycle_count,
   output reg  [31:0] instret_count,
   output reg  [31:0] stall_count,
-  output reg  [31:0] flush_count
+  output reg  [31:0] flush_count,
+  output reg  [31:0] branch_count
 );
 
   // Pipeline registers
 
   reg [31:0] if_id_pc, if_id_instr;
   reg        if_id_valid, id_ex_valid, ex_mem_valid, mem_wb_valid;
+  reg        if_id_pred_taken, id_ex_pred_taken;
+  reg [31:0] if_id_pred_target, id_ex_pred_target;
 
   reg [31:0] id_ex_pc, id_ex_rs1_val, id_ex_rs2_val, id_ex_imm;
   reg  [4:0] id_ex_rs1, id_ex_rs2, id_ex_rd;
@@ -40,32 +44,54 @@ module cpu_pipe #(
 
   reg  [31:0] pc;
   wire [31:0] if_instr;
-  wire        ex_redirect;   // EX says: jump somewhere else
+  wire        ex_redirect;   // EX says: the guess was wrong, go here instead
   wire [31:0] ex_target;
   wire        stall;         // hazard unit says: freeze IF and ID
 
   instr_mem #(.INIT_FILE(IMEM_FILE)) imem (.addr(pc), .instr(if_instr));
 
+  // branch prediction: guess the next PC right away in IF
+  wire        bp_taken;
+  wire [31:0] bp_target;
+  wire        bp_update;
+  wire        ex_actual_taken;
+  wire [31:0] ex_actual_target;
+
+  branch_predictor bp (
+    .clk(clk), .reset(reset),
+    .pc(pc), .pred_taken(bp_taken), .pred_target(bp_target),
+    .update(bp_update), .update_pc(id_ex_pc),
+    .actual_taken(ex_actual_taken), .actual_target(ex_actual_target)
+  );
+
+  wire        if_pred_taken  = USE_BP ? bp_taken : 1'b0;
+  wire [31:0] if_pred_target = bp_target;
+  wire [31:0] if_next_pc     = if_pred_taken ? if_pred_target : pc + 32'd4;
+
   always @(posedge clk) begin
     if (reset)            pc <= 32'd0;
     else if (ex_redirect) pc <= ex_target;
-    else if (!stall)      pc <= pc + 32'd4;
+    else if (!stall)      pc <= if_next_pc;
   end
 
   // on a redirect, the instruction in IF/ID was fetched by mistake: flush it
   always @(posedge clk) begin
     if (reset || ex_redirect) begin
-      if_id_pc    <= 32'd0;
-      if_id_instr <= `NOP;
-      if_id_valid <= 1'b0;
+      if_id_pc          <= 32'd0;
+      if_id_instr       <= `NOP;
+      if_id_valid       <= 1'b0;
+      if_id_pred_taken  <= 1'b0;
+      if_id_pred_target <= 32'd0;
     end else if (!stall) begin
-      if_id_pc    <= pc;
-      if_id_instr <= if_instr;
-      if_id_valid <= 1'b1;
+      if_id_pc          <= pc;
+      if_id_instr       <= if_instr;
+      if_id_valid       <= 1'b1;
+      if_id_pred_taken  <= if_pred_taken;
+      if_id_pred_target <= if_pred_target;
     end
   end
 
-
+  // ID: decode and read registers
 
   wire [4:0] id_rs1    = if_id_instr[19:15];
   wire [4:0] id_rs2    = if_id_instr[24:20];
@@ -95,7 +121,7 @@ module cpu_pipe #(
   wire [31:0] id_rs1_val, id_rs2_val;
   reg  [31:0] wb_data;
 
-
+  // write through on: WB writes and ID reads in the same cycle
   regfile #(.WRITE_THROUGH(1)) rf (
     .clk(clk), .we(mem_wb_reg_write), .rs1(id_rs1), .rs2(id_rs2),
     .rd(mem_wb_rd), .wd(wb_data), .rd1(id_rs1_val), .rd2(id_rs2_val)
@@ -104,7 +130,9 @@ module cpu_pipe #(
   // bubble on reset, on a load use stall, or when flushing a wrong path instruction
   always @(posedge clk) begin
     if (reset || stall || ex_redirect) begin
-      id_ex_valid      <= 1'b0;
+      id_ex_valid       <= 1'b0;
+      id_ex_pred_taken  <= 1'b0;
+      id_ex_pred_target <= 32'd0;
       id_ex_reg_write  <= 1'b0;
       id_ex_mem_read   <= 1'b0;
       id_ex_mem_write  <= 1'b0;
@@ -124,7 +152,9 @@ module cpu_pipe #(
       id_ex_rd         <= 5'd0;
       id_ex_funct3     <= 3'd0;
     end else begin
-      id_ex_valid      <= if_id_valid;
+      id_ex_valid       <= if_id_valid;
+      id_ex_pred_taken  <= if_id_pred_taken;
+      id_ex_pred_target <= if_id_pred_target;
       id_ex_reg_write  <= id_reg_write;
       id_ex_mem_read   <= id_mem_read;
       id_ex_mem_write  <= id_mem_write;
@@ -146,7 +176,7 @@ module cpu_pipe #(
     end
   end
 
-
+  // EX: forwarding, ALU, branch decision
 
   wire [1:0] fwd_a, fwd_b;
 
@@ -193,9 +223,20 @@ module cpu_pipe #(
   branch_unit bu (.branch(id_ex_branch), .funct3(id_ex_funct3),
                   .a(ex_rs1_val), .b(ex_rs2_val), .taken(ex_taken));
 
-  assign ex_redirect = ex_taken | id_ex_jal | id_ex_jalr;
-  assign ex_target   = id_ex_jalr ? {ex_alu_result[31:1], 1'b0}
-                                  : id_ex_pc + id_ex_imm;
+  // what really happens
+  assign ex_actual_taken  = ex_taken | id_ex_jal | id_ex_jalr;
+  assign ex_actual_target = id_ex_jalr ? {ex_alu_result[31:1], 1'b0}
+                                       : id_ex_pc + id_ex_imm;
+
+  // wrong guess: taken vs not taken was wrong, or the target was wrong
+  wire ex_mispredict = (ex_actual_taken != id_ex_pred_taken) ||
+                       (ex_actual_taken && (ex_actual_target != id_ex_pred_target));
+
+  assign ex_redirect = ex_mispredict;
+  assign ex_target   = ex_actual_taken ? ex_actual_target : id_ex_pc + 32'd4;
+
+  // teach the predictor what every branch and jump actually did
+  assign bp_update = id_ex_branch | id_ex_jal | id_ex_jalr;
 
   always @(posedge clk) begin
     if (reset) begin
@@ -249,7 +290,7 @@ module cpu_pipe #(
     end
   end
 
-
+  // WB: pick what gets written back
 
   always @(*) begin
     case (mem_wb_result_src)
@@ -268,11 +309,13 @@ module cpu_pipe #(
       instret_count <= 32'd0;
       stall_count   <= 32'd0;
       flush_count   <= 32'd0;
+      branch_count  <= 32'd0;
     end else if (!halted) begin
       cycle_count <= cycle_count + 32'd1;
       if (mem_wb_valid) instret_count <= instret_count + 32'd1;
       if (stall)        stall_count   <= stall_count + 32'd1;
       if (ex_redirect)  flush_count   <= flush_count + 32'd1;
+      if (bp_update)    branch_count  <= branch_count + 32'd1;
       if (mem_is_halt)  halted        <= 1'b1;
     end
   end
